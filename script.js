@@ -53,3 +53,13 @@ filterButtons.forEach(button => {
     });
 });
 
+window.addEventListener('scroll', () => {
+    const header = document.getElementById('header');
+    if (window.scrollY > 50) {
+        header.style.padding = '10px 80px';
+        header.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+    } else {
+        header.style.padding = '20px 80px';
+        header.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.06)';
+    }
+});
