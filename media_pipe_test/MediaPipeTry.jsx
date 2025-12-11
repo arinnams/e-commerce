@@ -1,31 +1,26 @@
-mediapipe-test/index.html
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MediaPipe Try — TryOn Test</title>
-  <link rel="stylesheet" href="mediapipe-try.css" />
-</head>
-<body>
-  <h2 style="text-align:center;">MediaPipe Pose — Try-on test (isolated)</h2>
-  <div class="mp-root">
-    <div class="mp-video-wrap">
-      <video id="input_video" autoplay playsinline muted></video>
-      <canvas id="output_canvas"></canvas>
-      <img id="dressOverlay" src="assets/dress.png" alt="dress" />
+<video ref={videoRef} className="mp-video" autoPlay playsInline muted />
+        <canvas ref={canvasRef} className="mp-canvas" />
+        {/* overlay clothing uses lastBox */}
+        <img
+          src="/assets/dress.png"
+          alt="dress-overlay"
+          className="mp-dress"
+          style={
+            lastBox
+              ? {
+                  left: ${lastBox.cx}px,
+                  top: ${lastBox.cy}px,
+                  width: ${lastBox.w * 1.05}px,
+                  transform: translate(-50%,-50%) rotate(${lastBox.angle}deg)
+                }
+              : { display: "none" }
+          }
+        />
+      </div>
+      <div className="mp-try-info">
+        <p>Camera running: {isRunning ? "yes" : "no"}</p>
+        <p>If overlay not visible — move further from camera or allow permissions.</p>
+      </div>
     </div>
-    <div class="mp-info">
-      <button id="startBtn">Start camera</button>
-      <button id="stopBtn">Stop camera</button>
-      <p id="status">Status: stopped</p>
-      <p>Если overlay не видно — разреши камеру, отойди дальше от камеры и убедись, что на картинке прозрачный фон.</p>
-    </div>
-  </div>
-
-  <!-- MediaPipe Pose (cdn) -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5/pose.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="mediapipe-try.js"></script>
-</body>
-</html>
+  );
+}
