@@ -1,0 +1,14 @@
+.mp-try-root { display:flex; flex-direction:column; gap:10px; align-items:center; }
+.mp-try-video-wrap { position:relative; width:640px; max-width:100%; }
+.mp-video { position: absolute; top:0; left:0; width:100%; height:auto; visibility:hidden; } /* hide raw video — we draw it into canvas */
+.mp-canvas { width:100%; height:auto; display:block; }
+.mp-dress {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: center center;
+  /* a bit larger */
+  opacity: 0.95;
+  max-width: 120%;
+  will-change: transform, left, top, width;
+}
+.mp-try-info { font-size:14px; color:#333; text-align:center; }
