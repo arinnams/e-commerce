@@ -1,66 +1,76 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>AI Fitting Room</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-  <style>
-    body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-    canvas { width: 100vw; height: 100vh; object-fit: cover; }
-    .back-btn { position: absolute; top: 20px; left: 20px; padding: 12px 24px; background: #088178; color: white; border: none; cursor: pointer; z-index: 100; border-radius: 8px; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <button class="back-btn" onclick="window.location.href='index.html'">← Назад в магазин</button>
+const videoElement = document.getElementsByClassName('input_video')[0];
+const canvasElement = document.getElementsByClassName('output_canvas')[0];
+const canvasCtx = canvasElement.getContext('2d');
+
+// 1. Путь к вашему конкретному платью
+const clothImage = new Image();
+clothImage.src = 'media_pipe_test/assets/dress1.png'; 
+
+function onResults(results) {
+  // Настройка холста под размер видео
+  canvasElement.width = videoElement.videoWidth;
+  canvasElement.height = videoElement.videoHeight;
   
-  <video class="input_video" playsinline muted autoplay style="display:none;"></video>
-  <canvas class="output_canvas"></canvas>
+  canvasCtx.save();
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  
+  // Зеркальный режим
+  canvasCtx.translate(canvasElement.width, 0);
+  canvasCtx.scale(-1, 1);
+  
+  // Отрисовка видео
+  canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+  
+  if (results.poseLandmarks) {
+    const landmarks = results.poseLandmarks;
 
-  <script type="module">
-    const videoElement = document.getElementsByClassName('input_video')[0];
-    const canvasElement = document.getElementsByClassName('output_canvas')[0];
-    const canvasCtx = canvasElement.getContext('2d');
+    // Плечи (11, 12) и Бедра (23, 24)
+    const leftShoulder = landmarks[11];
+    const rightShoulder = landmarks[12];
+    const leftHip = landmarks[23];
+    const rightHip = landmarks[24];
 
-    function onResults(results) {
-      canvasElement.width = videoElement.videoWidth;
-      canvasElement.height = videoElement.videoHeight;
-      
-      canvasCtx.save();
-      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-      
-      // Рисуем зеркальное отображение (так удобнее примерять)
-      canvasCtx.translate(canvasElement.width, 0);
-      canvasCtx.scale(-1, 1);
-      
-      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-      
-      if (results.poseLandmarks) {
-        // Отрисовка скелета для проверки
-        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
-        drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
-      }
-      canvasCtx.restore();
-    }
-
-    const pose = new Pose({locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-    }});
-
-    pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-    pose.onResults(onResults);
-
-    const camera = new Camera(videoElement, {
-      onFrame: async () => {
-        await pose.send({image: videoElement});
-      },
-      width: 1280,
-      height: 720
-    });
+    // Вычисляем ширину плеч
+    const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x) * canvasElement.width;
     
-    // Запуск камеры
-    camera.start();
-  </script>
-</body>
-</html>
+    // Масштаб платья (делаем чуть шире плеч для реалистичности)
+    const clothWidth = shoulderWidth * 2.2; 
+    const aspectRatio = clothImage.height / clothImage.width;
+    const clothHeight = clothWidth * aspectRatio;
+
+    // Центр грудной клетки
+    const midX = ((leftShoulder.x + rightShoulder.x) / 2) * canvasElement.width;
+    const midY = ((leftShoulder.y + rightShoulder.y) / 2) * canvasElement.height;
+
+    // Рисуем платье
+    canvasCtx.drawImage(
+      clothImage,
+      midX - clothWidth / 2, // Центровка
+      midY - (clothHeight * 0.1), // Смещение к шее
+      clothWidth,
+      clothHeight
+    );
+  }
+  canvasCtx.restore();
+}
+
+const pose = new Pose({locateFile: (file) => {
+  return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+}});
+
+pose.setOptions({
+  modelComplexity: 1,
+  smoothLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
+pose.onResults(onResults);
+
+const camera = new Camera(videoElement, {
+  onFrame: async () => {
+    await pose.send({image: videoElement});
+  },
+  width: 1280,
+  height: 720
+});
+camera.start();
