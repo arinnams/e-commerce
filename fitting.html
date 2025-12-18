@@ -1,57 +1,21 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>AI Fitting Room - E-Shop</title>
+  <title>AI Fitting Room</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
   <style>
-    body {
-      margin: 0;
-      background: #000;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: sans-serif;
-    }
-    canvas {
-      width: 100vw;
-      height: 100vh;
-      object-fit: contain;
-    }
-    .back-btn {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 12px 24px;
-      background: #088178;
-      color: white;
-      border: none;
-      cursor: pointer;
-      z-index: 100;
-      border-radius: 8px;
-      font-weight: bold;
-      text-decoration: none;
-    }
-    #loading-status {
-      position: absolute;
-      color: white;
-      background: rgba(0,0,0,0.5);
-      padding: 10px;
-      border-radius: 5px;
-      pointer-events: none;
-    }
+    body { margin: 0; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+    canvas { width: 100vw; height: 100vh; object-fit: contain; }
+    .back-btn { position: absolute; top: 20px; left: 20px; padding: 12px 24px; background: #088178; color: white; border: none; cursor: pointer; z-index: 100; border-radius: 8px; font-weight: bold; text-decoration: none; font-family: sans-serif; }
   </style>
 </head>
 <body>
 
   <a href="index.html" class="back-btn">← Back to Shop</a>
-  <div id="loading-status">Загрузка ИИ и платья...</div>
-
   <video class="input_video" playsinline muted autoplay style="display:none;"></video>
   <canvas class="output_canvas"></canvas>
 
@@ -59,98 +23,57 @@
     const videoElement = document.getElementsByClassName('input_video')[0];
     const canvasElement = document.getElementsByClassName('output_canvas')[0];
     const canvasCtx = canvasElement.getContext('2d');
-    const statusDiv = document.getElementById('loading-status');
 
-    // 1. ЗАГРУЗКА ПЛАТЬЯ
+    // Прямая ссылка на ваше платье
     const clothImage = new Image();
-    // Полный путь для GitHub Pages
     clothImage.src = 'https://arinnams.github.io/e-commerce/media_pipe_test/assets/dress1.png'; 
 
-    clothImage.onload = () => {
-      console.log("Платье успешно загружено");
-      statusDiv.style.display = 'none';
-    };
-
-    clothImage.onerror = () => {
-      console.error("Ошибка загрузки платья! Проверьте путь: " + clothImage.src);
-      statusDiv.innerText = "Ошибка: Картинка платья не найдена";
-    };
-
     function onResults(results) {
-      // Установка размеров холста под видео
       canvasElement.width = videoElement.videoWidth;
       canvasElement.height = videoElement.videoHeight;
       
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       
-      // ЗЕРКАЛЬНЫЙ РЕЖИМ (чтобы было как в зеркале)
+      // Отражаем экран зеркально
       canvasCtx.translate(canvasElement.width, 0);
       canvasCtx.scale(-1, 1);
       
-      // Рисуем кадр видео
+      // Рисуем видео
       canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
       
       if (results.poseLandmarks) {
         const landmarks = results.poseLandmarks;
-
-        // Точки MediaPipe: 11 - левое плечо, 12 - правое плечо
         const leftShoulder = landmarks[11];
         const rightShoulder = landmarks[12];
 
-        // Если платье загружено, рисуем его
         if (clothImage.complete && clothImage.naturalWidth !== 0) {
-          
-          // Вычисляем ширину плеч в пикселях
+          // Расчет размеров платья
           const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x) * canvasElement.width;
-          
-          // Коэффициент размера (2.8 — оптимально для платья, чтобы закрыть плечи)
           const clothWidth = shoulderWidth * 2.8; 
-          const aspectRatio = clothImage.naturalHeight / clothImage.naturalWidth;
-          const clothHeight = clothWidth * aspectRatio;
+          const clothHeight = clothWidth * (clothImage.naturalHeight / clothImage.naturalWidth);
 
-          // Находим центр между плечами
+          // Позиция центра
           const midX = ((leftShoulder.x + rightShoulder.x) / 2) * canvasElement.width;
           const midY = ((leftShoulder.y + rightShoulder.y) / 2) * canvasElement.height;
 
-          // РИСУЕМ ПЛАТЬЕ
-          canvasCtx.drawImage(
-            clothImage,
-            midX - clothWidth / 2,         // Горизонтальный центр
-            midY - (clothHeight * 0.12),   // Смещение вверх к воротнику
-            clothWidth,
-            clothHeight
-          );
+          // Наложение платья
+          canvasCtx.drawImage(clothImage, midX - clothWidth / 2, midY - (clothHeight * 0.15), clothWidth, clothHeight);
         } else {
-          // Если платье еще грузится, рисуем скелет (для теста)
+          // Если платье не загрузилось, рисуем точки (чтобы знать, что ИИ работает)
           drawConnectors(canvasCtx, landmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
-          drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1});
         }
       }
       canvasCtx.restore();
     }
 
-    // Настройка MediaPipe Pose
-    const pose = new Pose({locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-    }});
-
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-    
+    const pose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+    pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
     pose.onResults(onResults);
 
-    // Запуск камеры
     const camera = new Camera(videoElement, {
-      onFrame: async () => {
-        await pose.send({image: videoElement});
-      },
-      width: 1280,
-      height: 720
+      onFrame: async () => { await pose.send({image: videoElement}); },
+      width: 1280, height: 720
     });
     camera.start();
   </script>
