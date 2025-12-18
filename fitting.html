@@ -24,8 +24,8 @@
     const canvasElement = document.getElementsByClassName('output_canvas')[0];
     const canvasCtx = canvasElement.getContext('2d');
 
-    // Прямая ссылка на ваше платье
     const clothImage = new Image();
+    // Используем ваше загруженное платье
     clothImage.src = 'https://arinnams.github.io/e-commerce/media_pipe_test/assets/dress1.png'; 
 
     function onResults(results) {
@@ -35,34 +35,40 @@
       canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       
-      // Отражаем экран зеркально
+      // Зеркальное отображение
       canvasCtx.translate(canvasElement.width, 0);
       canvasCtx.scale(-1, 1);
       
-      // Рисуем видео
+      // 1. Рисуем камеру (обычный режим)
       canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
       
-      if (results.poseLandmarks) {
+      if (results.poseLandmarks && clothImage.complete && clothImage.naturalWidth !== 0) {
         const landmarks = results.poseLandmarks;
         const leftShoulder = landmarks[11];
         const rightShoulder = landmarks[12];
 
-        if (clothImage.complete && clothImage.naturalWidth !== 0) {
-          // Расчет размеров платья
-          const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x) * canvasElement.width;
-          const clothWidth = shoulderWidth * 2.8; 
-          const clothHeight = clothWidth * (clothImage.naturalHeight / clothImage.naturalWidth);
+        // Расчет размеров
+        const shoulderWidth = Math.abs(leftShoulder.x - rightShoulder.x) * canvasElement.width;
+        const clothWidth = shoulderWidth * 2.8; 
+        const clothHeight = clothWidth * (clothImage.naturalHeight / clothImage.naturalWidth);
 
-          // Позиция центра
-          const midX = ((leftShoulder.x + rightShoulder.x) / 2) * canvasElement.width;
-          const midY = ((leftShoulder.y + rightShoulder.y) / 2) * canvasElement.height;
+        const midX = ((leftShoulder.x + rightShoulder.x) / 2) * canvasElement.width;
+        const midY = ((leftShoulder.y + rightShoulder.y) / 2) * canvasElement.height;
 
-          // Наложение платья
-          canvasCtx.drawImage(clothImage, midX - clothWidth / 2, midY - (clothHeight * 0.15), clothWidth, clothHeight);
-        } else {
-          // Если платье не загрузилось, рисуем точки (чтобы знать, что ИИ работает)
-          drawConnectors(canvasCtx, landmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 2});
-        }
+        // 2. ВКЛЮЧАЕМ РЕЖИМ УДАЛЕНИЯ БЕЛОГО ФОНА
+        canvasCtx.globalCompositeOperation = 'multiply';
+
+        // Рисуем платье
+        canvasCtx.drawImage(
+          clothImage, 
+          midX - clothWidth / 2, 
+          midY - (clothHeight * 0.12), 
+          clothWidth, 
+          clothHeight
+        );
+
+        // 3. ВЫКЛЮЧАЕМ РЕЖИМ (возвращаемся к нормальному рисованию)
+        canvasCtx.globalCompositeOperation = 'source-over';
       }
       canvasCtx.restore();
     }
